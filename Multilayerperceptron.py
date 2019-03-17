@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 
 class MLP:
@@ -17,8 +18,8 @@ class MLP:
         self.graph_accuracy = []
     
     def init_layers(self):
-        self.hidden_layer = Layer(self.input_size)
-        self.output_layer = Layer(self.input_size)
+        self.hidden_layer = Layer(self.hidden_layer_size, self.learn_rate)
+        self.output_layer = Layer(self.output_layer_size, self.learn_rate)
         self.init_weight()
 
     def init_weight(self):
@@ -44,7 +45,7 @@ class MLP:
         for index_hidden, hidden_neuron in enumerate(self.hidden_layer.neurons):
             d_error_wrt_h = 0
             for index_output, _ in enumerate(self.output_layer.neurons):
-                d_error_wrt_h += self.output_layer.neurons[index_output] + self.output_layer.neurons[index_output].weights[index_hidden]
+                d_error_wrt_h += self.output_layer.neurons[index_output].delta * self.output_layer.neurons[index_output].weights[index_hidden]
             hidden_neuron.delta = d_error_wrt_h*hidden_neuron.get_de_sigmoid()
         
         #updating weights in each neuron
@@ -107,16 +108,12 @@ class MLP:
             self.test(self.test_data)
         self.plot()
 
-
-
-
-
 class Layer:
 
-    def __init__ (self, num_neurons):
-        
+    def __init__ (self, num_neurons, learn_rate):
         self.bias = np.random.random()
         self.neurons = []
+        self.learn_rate = learn_rate
         for _ in range(num_neurons):
             self.neurons.append(Neuron(self.bias))
         
@@ -137,10 +134,7 @@ class Layer:
         dE_bias = 0
         for neuron in self.neurons:
             dE_bias += neuron.delta * (neuron.squashed_output-(1-neuron.squashed_output))
-        self.bias = self.bias - self.learn_rate*dE_bias
-
-                
-
+        self.bias = self.bias - (self.learn_rate*dE_bias)
 
 class Neuron:
 
@@ -161,15 +155,20 @@ class Neuron:
         return self.squashed_output
     
     def sigmoid(self, x):
-        return 1 / (1 + np.exp(-x))
+        if x>= 0:
+            z = np.exp(-x)
+            return (1/(1+z))
+        else:
+            z = np.exp(x)
+            return (z/(1+z))
 
     def get_error(self, target):
-        error = pow(self.squashed_output - target,2)/2
+        error = 0.5*pow(self.squashed_output - target,2)
         return error
 
     def get_error_margin(self, target):
-       error_margin = self.squashed_output - target
-       return error_margin
+        error_margin = self.squashed_output - target
+        return error_margin
 
     def get_de_sigmoid(self):
         de_sigmoid = self.squashed_output + (1-self.squashed_output)
